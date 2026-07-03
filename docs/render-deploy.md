@@ -1,5 +1,7 @@
 # Deploy on Render
 
+> **Looking for free hosting?** Use [free-deploy.md](free-deploy.md) (Neon + Koyeb, $0/month). This guide is for Render if you want a single-platform paid setup.
+
 Step-by-step guide to deploy the **Review Discovery Engine** backend (FastAPI) on [Render](https://render.com), connect the **GitHub Pages** frontend, and load your review data.
 
 ## What gets deployed

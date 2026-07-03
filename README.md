@@ -8,10 +8,11 @@ AI-powered platform that transforms unstructured user feedback into structured, 
 |----------|-----|
 | **Repository** | https://github.com/ankitashok15/Review-Analyzer |
 | **Live Dashboard (Frontend)** | https://ankitashok15.github.io/Review-Analyzer/ |
-| **Deploy backend (Render)** | [docs/render-deploy.md](docs/render-deploy.md) |
+| **Deploy backend (free — recommended)** | [docs/free-deploy.md](docs/free-deploy.md) |
+| **Deploy backend (Render — paid/long-term)** | [docs/render-deploy.md](docs/render-deploy.md) |
 | **API docs (local)** | http://localhost:8000/docs |
 
-> Deploy the FastAPI backend on **Render**, set GitHub variable `RENDER_API_URL`, then redeploy the frontend so Search/Ask/Insights work on GitHub Pages. See [Render deploy guide](docs/render-deploy.md).
+> **Free hosting:** Deploy the API on [Koyeb](https://koyeb.com) + database on [Neon](https://neon.tech) — see [free deploy guide](docs/free-deploy.md). Set GitHub variable `RENDER_API_URL` to your API URL, then redeploy the frontend.
 
 ## Stack
 
