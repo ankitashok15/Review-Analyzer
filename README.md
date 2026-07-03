@@ -2,6 +2,16 @@
 
 AI-powered platform that transforms unstructured user feedback into structured, searchable, evidence-backed product intelligence.
 
+## Links
+
+| Resource | URL |
+|----------|-----|
+| **Repository** | https://github.com/ankitashok15/Review-Analyzer |
+| **Live Dashboard (Frontend)** | https://ankitashok15.github.io/Review-Analyzer/ |
+| **API docs (local)** | http://localhost:8000/docs |
+
+> The GitHub Pages dashboard shows the UI. Search, Ask, and Insights need the **backend API running** (locally or deployed). See setup below.
+
 ## Stack
 
 - **API:** FastAPI 0.139+
@@ -111,6 +121,9 @@ See `phases/phase-1/README.md` for full ingestion commands.
 - [x] Phase 5 — Repository layer
 - [x] Phase 6 — Semantic search API
 - [x] Phase 7 — Insight generation API
+- [x] Phase 8 — RAG Q&A API
+- [x] Phase 9 — React dashboard
+- [x] Phase 10 — Production hardening & CI/CD
 
 **MVP path without bulk enrichment:** ingest → embed → search/RAG (Phases 4–6). Phase 7 needs enriched reviews. Enrichment can be run later via `python scripts/run_pipeline.py enrich` when API quota allows.
 
