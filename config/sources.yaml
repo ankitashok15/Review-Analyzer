@@ -1,0 +1,41 @@
+sources:
+  csv:
+    enabled: true
+    app_name: Spotify
+    default_source: google_play
+    default_platform: android
+    column_map:
+      body: content
+      rating: score
+      review_date: at
+      source_id: reviewId
+      author: userName
+    metadata_columns:
+      - thumbsUpCount
+      - reviewCreatedVersion
+      - appVersion
+  json:
+    enabled: true
+    app_name: Spotify
+    default_source: google_play
+    default_platform: android
+    column_map:
+      body: content
+      rating: score
+      review_date: at
+      source_id: reviewId
+      author: userName
+    metadata_columns:
+      - thumbsUpCount
+      - reviewCreatedVersion
+      - appVersion
+  app_store:
+    enabled: false
+    app_id: "324684580"
+  google_play:
+    enabled: false
+  reddit:
+    enabled: false
+    subreddits:
+      - spotify
+      - truespotify

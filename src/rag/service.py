@@ -1,0 +1,95 @@
+import logging
+
+from sqlalchemy.orm import Session
+
+from src.insights.service import InsightService
+from src.rag.answer_generator import AnswerGenerator
+from src.rag.retriever import RagRetriever
+from src.rag.schemas import AskRequest, AskResponse, InsightSnippet, RetrievedReview
+from src.retrieval.schemas import SearchFilters
+from src.storage.models import InsightCache
+
+logger = logging.getLogger(__name__)
+
+MIN_RELEVANCE_SCORE = 0.15
+MAX_RELATED_INSIGHTS = 3
+
+
+class RagService:
+    """End-to-end RAG pipeline: retrieve, assemble context, generate, validate."""
+
+    def __init__(
+        self,
+        db: Session,
+        *,
+        retriever: RagRetriever | None = None,
+        answer_generator: AnswerGenerator | None = None,
+        insight_service: InsightService | None = None,
+        min_relevance_score: float = MIN_RELEVANCE_SCORE,
+    ):
+        self.db = db
+        self.retriever = retriever or RagRetriever(db)
+        self.answer_generator = answer_generator or AnswerGenerator(
+            gemini_client=self.retriever.gemini,
+        )
+        self.insights = insight_service or InsightService(db, gemini_client=self.retriever.gemini)
+        self.min_relevance_score = min_relevance_score
+
+    def ask(self, request: AskRequest) -> AskResponse:
+        question = request.question.strip()
+        if not question:
+            raise ValueError("Question cannot be empty")
+
+        _, retrieved = self.retriever.retrieve(
+            question,
+            request.filters,
+            top_k=request.top_k,
+            rewrite_query=request.rewrite_query,
+        )
+
+        if not retrieved:
+            logger.info("RAG: no retrieval results for question=%r", question)
+            return self.answer_generator.insufficient_evidence(question, retrieval_count=0)
+
+        top_score = max(item.score for item in retrieved)
+        if top_score < self.min_relevance_score:
+            logger.info(
+                "RAG: top score %.4f below threshold %.4f",
+                top_score,
+                self.min_relevance_score,
+            )
+            return self.answer_generator.insufficient_evidence(
+                question,
+                retrieval_count=len(retrieved),
+            )
+
+        insight_snippets = (
+            self._related_insights(retrieved) if request.include_insights else []
+        )
+        return self.answer_generator.generate(question, retrieved, insight_snippets)
+
+    def _related_insights(self, retrieved: list[RetrievedReview]) -> list[InsightSnippet]:
+        retrieved_ids = {str(review.review_id) for review in retrieved}
+        rows = (
+            self.db.query(InsightCache)
+            .order_by(InsightCache.generated_at.desc())
+            .all()
+        )
+
+        snippets: list[InsightSnippet] = []
+        for row in rows:
+            evidence = {str(rid) for rid in (row.evidence_review_ids or [])}
+            if not evidence & retrieved_ids:
+                continue
+            snippets.append(
+                InsightSnippet(
+                    insight_id=str(row.id),
+                    insight_type=row.insight_type,
+                    title=row.title,
+                    summary=row.summary,
+                )
+            )
+            if len(snippets) >= MAX_RELATED_INSIGHTS:
+                break
+
+        return snippets
