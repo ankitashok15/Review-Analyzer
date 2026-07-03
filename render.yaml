@@ -1,0 +1,67 @@
+# Render Blueprint — optional one-click deploy from the Render dashboard.
+# Manual step-by-step: docs/render-deploy.md
+
+databases:
+  - name: review-engine-db
+    plan: free
+    databaseName: review_engine
+    postgresMajorVersion: "16"
+
+services:
+  - type: keyvalue
+    name: review-engine-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+  - type: web
+    name: review-analyzer-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: review-engine-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: review-engine-redis
+          type: keyvalue
+          property: connectionString
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: ADMIN_API_KEY
+        sync: false
+      - key: GEMINI_RAG_MODEL
+        value: gemini-2.5-pro
+      - key: GEMINI_EMBEDDING_MODEL
+        value: gemini-embedding-001
+      - key: VECTOR_DIMENSION
+        value: "768"
+      - key: REQUIRE_ADMIN_API_KEY
+        value: "true"
+      - key: LOG_FORMAT
+        value: text
+      - key: CORS_ORIGINS
+        value: https://ankitashok15.github.io,http://localhost:5173
+
+  # Optional: uncomment for async ingest/enrich/embed jobs
+  # - type: worker
+  #   name: review-analyzer-worker
+  #   runtime: docker
+  #   plan: free
+  #   dockerfilePath: ./Dockerfile.worker
+  #   envVars:
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: review-engine-db
+  #         property: connectionString
+  #     - key: REDIS_URL
+  #       fromService:
+  #         name: review-engine-redis
+  #         type: keyvalue
+  #         property: connectionString
+  #     - key: GOOGLE_API_KEY
+  #       sync: false

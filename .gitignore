@@ -19,7 +19,6 @@ htmlcov/
 # Environment
 .env
 .env.local
-.streamlit/secrets.toml
 
 # IDE
 .idea/

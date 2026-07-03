@@ -8,10 +8,10 @@ AI-powered platform that transforms unstructured user feedback into structured, 
 |----------|-----|
 | **Repository** | https://github.com/ankitashok15/Review-Analyzer |
 | **Live Dashboard (Frontend)** | https://ankitashok15.github.io/Review-Analyzer/ |
-| **Streamlit app (deploy guide)** | [docs/streamlit-deploy.md](docs/streamlit-deploy.md) |
+| **Deploy backend (Render)** | [docs/render-deploy.md](docs/render-deploy.md) |
 | **API docs (local)** | http://localhost:8000/docs |
 
-> **GitHub Pages** shows the React UI only — it needs a deployed API (`VITE_API_URL`). For a single hosted demo without FastAPI, deploy **`streamlit_app.py`** to [Streamlit Cloud](https://share.streamlit.io) (see [streamlit deploy guide](docs/streamlit-deploy.md)).
+> Deploy the FastAPI backend on **Render**, set GitHub variable `RENDER_API_URL`, then redeploy the frontend so Search/Ask/Insights work on GitHub Pages. See [Render deploy guide](docs/render-deploy.md).
 
 ## Stack
 
