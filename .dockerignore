@@ -12,7 +12,6 @@ htmlcov/
 # Environment & secrets
 .env
 .env.local
-.streamlit/
 
 # IDE & OS
 .idea/
@@ -39,7 +38,6 @@ Architecture.md
 ImplementationPlan.md
 ProblemStatement.md
 *.md
-!deploy/huggingface/README.md
 
 # Build artifacts
 review_engine.dump

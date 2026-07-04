@@ -1,8 +1,6 @@
-# Deploy with Cloudflare Tunnel (100% free, no card)
+# Deploy with Cloudflare Tunnel (local demo)
 
-**Use this when Render, Koyeb, and Hugging Face don't work.**
-
-Your API runs on your PC and gets a public HTTPS URL via Cloudflare — no hosting bill, no credit card.
+Run the API on your PC and expose it via a public HTTPS URL through Cloudflare — useful for demos when you don't want a hosted API yet.
 
 | Piece | Where |
 |-------|--------|

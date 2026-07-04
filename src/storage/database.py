@@ -9,7 +9,7 @@ from config.settings import get_settings
 
 settings = get_settings()
 
-_is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+_is_serverless = bool(os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
 
 if _is_serverless:
     engine = create_engine(

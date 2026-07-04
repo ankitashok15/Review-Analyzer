@@ -17,6 +17,3 @@ dependencies = [
     "langdetect>=1.0.9",
     "httpx>=0.27.0",
 ]
-
-[tool.vercel]
-entrypoint = "api.index:app"

@@ -8,13 +8,11 @@ AI-powered platform that transforms unstructured user feedback into structured, 
 |----------|-----|
 | **Repository** | https://github.com/ankitashok15/Review-Analyzer |
 | **Live Dashboard (Frontend)** | https://ankitashok15.github.io/Review-Analyzer/ |
-| **Deploy API (Railway — recommended)** | [docs/railway-deploy.md](docs/railway-deploy.md) |
-| **Deploy API (Vercel)** | [docs/vercel-deploy.md](docs/vercel-deploy.md) |
-| **Deploy API (Cloudflare Tunnel)** | [docs/cloudflare-tunnel-deploy.md](docs/cloudflare-tunnel-deploy.md) |
-| **Deploy backend (Render — paid)** | [docs/render-deploy.md](docs/render-deploy.md) |
+| **Deploy API (Railway)** | [docs/railway-deploy.md](docs/railway-deploy.md) |
+| **Deploy API (Cloudflare Tunnel — local demo)** | [docs/cloudflare-tunnel-deploy.md](docs/cloudflare-tunnel-deploy.md) |
 | **API docs (local)** | http://localhost:8000/docs |
 
-> **Hosting:** Frontend on GitHub Pages + API on [Railway](docs/railway-deploy.md) (or [Vercel](docs/vercel-deploy.md)) + database on Neon. Set `RENDER_API_URL` to your API URL, then redeploy the frontend.
+> **Hosting:** Frontend on GitHub Pages + API on [Railway](docs/railway-deploy.md) + database on Neon. Set `RENDER_API_URL` to your Railway API URL, then redeploy the frontend.
 
 ## Stack
 
