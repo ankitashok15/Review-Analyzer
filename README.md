@@ -129,4 +129,34 @@ See `phases/phase-1/README.md` for full ingestion commands.
 
 **MVP path without bulk enrichment:** ingest → embed → search/RAG (Phases 4–6). Phase 7 needs enriched reviews. Enrichment can be run later via `python scripts/run_pipeline.py enrich` when API quota allows.
 
+## Live demo scope
+
+This deployment is intentionally scoped for **portfolio demo**, not full-scale production analytics.
+
+### Current database (Neon)
+
+| Data | Count | Notes |
+|------|------:|-------|
+| Reviews ingested | 1,354 | Subset of the ~84k Spotify CSV |
+| Reviews embedded | 1,034 | Enough for semantic **Search** and **Ask/RAG** |
+| Reviews enriched | 14 | Not used for the demo |
+
+### Why enrichment was not run at scale
+
+Bulk enrichment and embedding both call the **Google Gemini free tier**, which has strict daily limits (requests per day vary by model). During setup:
+
+- **Embeddings** were generated for ~1,000 reviews before the daily embed quota was reached.
+- **Enrichment** was attempted in batch but most calls failed with **429 quota errors**; only a handful succeeded.
+- Further enrichment was **stopped on purpose** — the demo focuses on **Search** and **Ask**, which do not require enriched metadata.
+
+Insight features (pain points, topics, segments, trends) depend on enrichment and are **out of scope** for this demo.
+
+### What to demo
+
+| Feature | Demo-ready? |
+|---------|-------------|
+| Semantic search | Yes |
+| Ask / RAG | Yes (use `gemini-2.5-flash-lite` if `gemini-2.5-pro` hits quota) |
+| Insights / topics / segments | No — insufficient enriched data |
+
 See `Architecture.md`, `ImplementationPlan.md`, and `phases/README.md` for full roadmap.
