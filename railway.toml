@@ -3,7 +3,9 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
+# Must use shell so $PORT expands. Overrides any broken Start Command saved in the Railway dashboard.
+startCommand = "/bin/sh -c \"exec uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}\""
 healthcheckPath = "/health/live"
-healthcheckTimeout = 300
+healthcheckTimeout = 600
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
