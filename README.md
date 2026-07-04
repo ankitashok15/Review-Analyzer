@@ -8,11 +8,11 @@ AI-powered platform that transforms unstructured user feedback into structured, 
 |----------|-----|
 | **Repository** | https://github.com/ankitashok15/Review-Analyzer |
 | **Live Dashboard (Frontend)** | https://ankitashok15.github.io/Review-Analyzer/ |
-| **Deploy backend (free — recommended)** | [docs/free-deploy.md](docs/free-deploy.md) (Neon + Hugging Face Spaces) |
+| **Deploy backend (free — recommended)** | [docs/cloudflare-tunnel-deploy.md](docs/cloudflare-tunnel-deploy.md) |
 | **Deploy backend (Render — paid)** | [docs/render-deploy.md](docs/render-deploy.md) |
 | **API docs (local)** | http://localhost:8000/docs |
 
-> **Free hosting:** Database on [Neon](https://neon.tech) (done) + API on [Hugging Face Spaces](https://huggingface.co/spaces) Docker — see [free deploy guide](docs/free-deploy.md). Set GitHub variable `RENDER_API_URL` to your Space URL, then redeploy the frontend.
+> **Free hosting:** Neon DB (done) + API via [Cloudflare Tunnel](docs/cloudflare-tunnel-deploy.md) on your PC. Set `RENDER_API_URL` to the tunnel URL, redeploy frontend. See [free deploy guide](docs/free-deploy.md).
 
 ## Stack
 
