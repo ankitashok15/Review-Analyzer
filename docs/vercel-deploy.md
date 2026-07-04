@@ -30,7 +30,7 @@ Neon          →  PostgreSQL + pgvector
 | Root Directory | `.` (repo root) |
 | Build Command | *(leave empty)* |
 | Output Directory | *(leave empty — do NOT set `frontend/dist`)* |
-| Install Command | *(leave empty — uses `api/requirements.txt`)* |
+| Install Command | `pip install -r api/requirements.txt` *(or leave empty if using `pyproject.toml` deps)* |
 
 4. Do **not** deploy yet — add environment variables first.
 
@@ -129,7 +129,7 @@ Test: https://ankitashok15.github.io/Review-Analyzer/
 |---------|-----|
 | 404 on all routes | Clear **Output Directory** in Vercel Settings; redeploy latest `main` |
 | 404 on `/` or `/health` | Ensure `vercel.json` rewrites exist; check deployment **Functions** tab shows `api/index.py` |
-| Build fails | Check Vercel build logs; ensure `requirements-vercel.txt` installs |
+| `ModuleNotFoundError: fastapi` | Ensure `pyproject.toml` has `[project].dependencies` and redeploy |
 | `db: disconnected` | Use Neon **pooled** URL; prefix `postgresql://` not `postgres://` |
 | CORS errors | Add `https://ankitashok15.github.io` to `CORS_ORIGINS` |
 | 504 timeout on Ask | Gemini slow + Hobby 10s limit — retry or upgrade Vercel plan |
