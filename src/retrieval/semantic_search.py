@@ -1,3 +1,4 @@
+import logging
 import re
 
 from sqlalchemy.orm import Session
@@ -10,6 +11,7 @@ from src.retrieval.ranker import RERANK_POOL_SIZE, rerank_hybrid
 from src.retrieval.schemas import SearchFilters, SearchResult
 from src.storage.repositories.embedding_repo import EmbeddingRepository
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 EXCERPT_MAX_LENGTH = 200
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
