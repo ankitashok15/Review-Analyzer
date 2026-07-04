@@ -128,12 +128,57 @@ Only needed for insight caching / Celery. Skip for demo.
 
 ## How deployment works
 
-On each deploy, Railway runs your `Dockerfile`, which executes `scripts/start_api.sh`:
+On each deploy:
 
-1. `alembic upgrade head` — applies DB migrations to Neon
-2. `uvicorn src.api.main:app` — starts API on Railway's `$PORT`
+1. **`preDeployCommand`** — `alembic upgrade head` runs against Neon (before the service goes live)
+2. **`startCommand`** — `uvicorn` binds to **`0.0.0.0`** on Railway's injected **`$PORT`**
+3. **Healthcheck** — Railway GETs `/health/live` until HTTP 200
 
-Config file: `railway.toml` (health check on `/health`).
+Config: `railway.toml`
+
+---
+
+## Troubleshooting
+
+### Network healthcheck failure
+
+Railway sends `GET /health/live` to your app on the **`PORT`** env var. If the app is not listening on that port within 5 minutes, deploy fails.
+
+**Check deploy logs** (Deployments → latest → View logs). Look for:
+
+| Log message | Meaning |
+|-------------|---------|
+| `Uvicorn running on http://0.0.0.0:XXXX` | Good — note the port number |
+| `Invalid value for '--port': '$PORT'` | Broken start command — pull latest `main` (uses shell-form `$PORT`) |
+| `bash\r: No such file` | Old CRLF script — pull latest `main` |
+| `alembic` / DB connection errors in **preDeploy** | Fix `DATABASE_URL` in Variables |
+| No uvicorn line at all | Container crashed on import — scroll up for traceback |
+
+**Railway dashboard checks:**
+
+1. **Variables** — `DATABASE_URL` must be set (Neon pooled URL). **Do not** manually set `PORT` unless Railway support told you to.
+2. **Settings → Deploy** — Healthcheck Path should be `/health/live` (or leave blank; `railway.toml` sets it).
+3. **Settings → Deploy → Start Command** — Clear any custom command, or redeploy from latest `main` so `railway.toml` overrides it.
+4. **Settings → Networking** — After deploy succeeds, **Generate Domain** if you have no public URL yet.
+
+**Verify locally after pull:**
+
+```powershell
+docker build -t review-api .
+docker run --rm -p 8080:8080 -e PORT=8080 -e DATABASE_URL=... -e GOOGLE_API_KEY=test review-api
+curl.exe http://localhost:8080/health/live
+```
+
+### Other issues
+
+| Problem | Fix |
+|---------|-----|
+| Build fails | Check deploy logs; often missing env var |
+| `db: disconnected` | Wrong `DATABASE_URL`; use Neon **pooled** URL with `sslmode=require` |
+| CORS error in browser | Add `https://ankitashok15.github.io` to `CORS_ORIGINS` |
+| Ask returns 500 | Gemini quota — use `gemini-2.5-flash-lite` for RAG |
+| App sleeps / slow start | Railway free tier may scale to zero on Hobby — first request slower |
+| Migration error on deploy | Check Neon connection; ensure pgvector extension exists |
 
 ---
 
@@ -146,20 +191,6 @@ Config file: `railway.toml` (health check on `/health`).
 | **Neon** | Separate free tier (already using) |
 
 Railway charges for **uptime + RAM/CPU**. A small API service is typically **$3–8/month**.
-
----
-
-## Troubleshooting
-
-| Problem | Fix |
-|---------|-----|
-| **Healthcheck failure** | Usually the container never started. Check **Deploy logs** for `bash\r` or migration errors. Latest fix: LF line endings in `start_api.sh`, health probe at `/health/live`. Redeploy after pulling latest `main`. |
-| Build fails | Check **Deployments** → **View logs**; often missing env var |
-| `db: disconnected` | Wrong `DATABASE_URL`; use Neon **pooled** URL with `sslmode=require` |
-| CORS error in browser | Add `https://ankitashok15.github.io` to `CORS_ORIGINS` |
-| Ask returns 500 | Gemini quota — use `gemini-2.5-flash-lite` for RAG |
-| App sleeps / slow start | Railway free tier may scale to zero on Hobby — first request slower |
-| Migration error on deploy | Check Neon connection; ensure pgvector extension exists |
 
 ---
 

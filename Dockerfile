@@ -19,4 +19,5 @@ RUN sed -i 's/\r$//' scripts/start_api.sh && chmod +x scripts/start_api.sh
 
 EXPOSE 8000
 
-CMD ["bash", "scripts/start_api.sh"]
+# Shell form ensures Railway's injected $PORT is used when startCommand is not overridden.
+CMD /bin/sh -c "exec uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"
