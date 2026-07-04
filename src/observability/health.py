@@ -5,9 +5,36 @@ from celery import Celery
 
 from config.settings import get_settings
 from src.ai.gemini_client import GeminiClient
-from src.storage.database import check_db_connection
+from src.embeddings.embedder import embedding_model_version
+from src.storage.database import check_db_connection, engine
+from sqlalchemy import text
 
 settings = get_settings()
+
+
+def get_database_stats() -> dict[str, int | str]:
+    try:
+        with engine.connect() as connection:
+            reviews = connection.execute(text("SELECT COUNT(*) FROM reviews")).scalar() or 0
+            embeddings = connection.execute(
+                text("SELECT COUNT(*) FROM review_embeddings")
+            ).scalar() or 0
+            versions = connection.execute(
+                text(
+                    "SELECT model_version, COUNT(*) AS n "
+                    "FROM review_embeddings GROUP BY model_version ORDER BY n DESC LIMIT 5"
+                )
+            ).fetchall()
+        return {
+            "review_count": int(reviews),
+            "embedding_count": int(embeddings),
+            "embedding_model_versions": [
+                {"model_version": row[0], "count": int(row[1])} for row in versions
+            ],
+            "search_model_version": embedding_model_version(),
+        }
+    except Exception as exc:
+        return {"error": str(exc)}
 
 
 def check_redis_connection() -> bool:
@@ -61,5 +88,6 @@ def build_health_report(*, detailed: bool = False) -> dict[str, Any]:
     if detailed:
         report["celery"] = check_celery_workers()
         report["gemini"] = check_gemini_connectivity()
+        report["database"] = get_database_stats()
 
     return report

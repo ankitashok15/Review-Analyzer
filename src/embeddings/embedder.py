@@ -12,9 +12,18 @@ from src.storage.vector_store import VectorStore
 
 logger = logging.getLogger(__name__)
 
-settings = get_settings()
-MODEL_VERSION = f"{settings.gemini_embedding_model}-v1"
 DEFAULT_CONCURRENCY = 1
+
+
+def embedding_model_version() -> str:
+    """Runtime model version tag stored with vectors (avoids import-time env drift)."""
+    raw = get_settings().gemini_embedding_model.strip()
+    if raw.endswith("-v1"):
+        return raw
+    return f"{raw}-v1"
+
+
+MODEL_VERSION = embedding_model_version()
 COMMIT_BATCH_SIZE = 25
 
 

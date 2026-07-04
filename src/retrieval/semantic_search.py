@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from config.settings import get_settings
 from src.ai.gemini_client import GeminiClient
-from src.embeddings.embedder import MODEL_VERSION
+from src.embeddings.embedder import embedding_model_version
 from src.embeddings.schemas import EmbeddingFilters, ScoredResult
 from src.retrieval.ranker import RERANK_POOL_SIZE, rerank_hybrid
 from src.retrieval.schemas import SearchFilters, SearchResult
@@ -105,14 +105,26 @@ class SemanticSearchService:
 
         query_vector = self.gemini.embed(normalized)
         embedding_filters = _to_embedding_filters(filters)
+        model_version = embedding_model_version()
 
         fetch_k = min(max(top_k, RERANK_POOL_SIZE), 100) if hybrid else top_k
         candidates = self.embeddings.find_similar(
             query_vector,
             top_k=fetch_k,
-            model_version=MODEL_VERSION,
+            model_version=model_version,
             filters=embedding_filters,
         )
+        if not candidates:
+            logger.warning(
+                "No vector hits for model_version=%r; retrying without model filter",
+                model_version,
+            )
+            candidates = self.embeddings.find_similar(
+                query_vector,
+                top_k=fetch_k,
+                model_version=None,
+                filters=embedding_filters,
+            )
 
         if hybrid and candidates:
             candidates = rerank_hybrid(normalized, candidates, top_k=top_k)
