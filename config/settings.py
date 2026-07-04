@@ -1,5 +1,7 @@
 from functools import lru_cache
+from urllib.parse import urlparse
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +14,8 @@ class Settings(BaseSettings):
     )
 
     database_url: str = "postgresql://postgres:postgres@localhost:5434/review_engine"
+    # Optional override for Railway when a linked Postgres service injects DATABASE_URL.
+    neon_database_url: str = ""
     redis_url: str = "redis://localhost:6379/0"
     google_api_key: str = "placeholder"
     gemini_enrichment_model: str = "gemini-2.0-flash"
@@ -39,6 +43,16 @@ class Settings(BaseSettings):
 
     max_query_length: int = 2000
     job_result_ttl_seconds: int = 86400
+
+    @model_validator(mode="after")
+    def apply_neon_database_url(self) -> "Settings":
+        if self.neon_database_url.strip():
+            self.database_url = self.neon_database_url.strip()
+        return self
+
+    @property
+    def database_host(self) -> str:
+        return urlparse(self.database_url).hostname or "unknown"
 
 
 @lru_cache

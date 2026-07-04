@@ -28,6 +28,7 @@ def get_database_stats() -> dict[str, int | str]:
         return {
             "review_count": int(reviews),
             "embedding_count": int(embeddings),
+            "database_host": settings.database_host,
             "embedding_model_versions": [
                 {"model_version": row[0], "count": int(row[1])} for row in versions
             ],
