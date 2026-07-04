@@ -100,7 +100,7 @@ Test: https://ankitashok15.github.io/Review-Analyzer/
 
 | File | Purpose |
 |------|---------|
-| `main.py` | Vercel entrypoint (`app` export) |
+| `api/index.py` | Vercel entrypoint (`app` export) |
 | `vercel.json` | Install command, 60s timeout, 1GB memory |
 | `requirements-vercel.txt` | Production Python deps (no pytest/celery) |
 | `pyproject.toml` | `tool.vercel.entrypoint` |

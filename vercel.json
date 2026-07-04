@@ -3,7 +3,7 @@
   "installCommand": "pip install -r requirements-vercel.txt",
   "framework": null,
   "functions": {
-    "main.py": {
+    "api/index.py": {
       "maxDuration": 60,
       "memory": 1024
     }
