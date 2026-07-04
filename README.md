@@ -8,11 +8,12 @@ AI-powered platform that transforms unstructured user feedback into structured, 
 |----------|-----|
 | **Repository** | https://github.com/ankitashok15/Review-Analyzer |
 | **Live Dashboard (Frontend)** | https://ankitashok15.github.io/Review-Analyzer/ |
-| **Deploy backend (free — recommended)** | [docs/cloudflare-tunnel-deploy.md](docs/cloudflare-tunnel-deploy.md) |
+| **Deploy API (Vercel — recommended)** | [docs/vercel-deploy.md](docs/vercel-deploy.md) |
+| **Deploy API (Cloudflare Tunnel)** | [docs/cloudflare-tunnel-deploy.md](docs/cloudflare-tunnel-deploy.md) |
 | **Deploy backend (Render — paid)** | [docs/render-deploy.md](docs/render-deploy.md) |
 | **API docs (local)** | http://localhost:8000/docs |
 
-> **Free hosting:** Neon DB (done) + API via [Cloudflare Tunnel](docs/cloudflare-tunnel-deploy.md) on your PC. Set `RENDER_API_URL` to the tunnel URL, redeploy frontend. See [free deploy guide](docs/free-deploy.md).
+> **Hosting:** Frontend on GitHub Pages + API on [Vercel](docs/vercel-deploy.md) + database on Neon. Set `RENDER_API_URL` to your Vercel URL, then redeploy the frontend.
 
 ## Stack
 

@@ -1,0 +1,16 @@
+frontend/
+phases/
+docs/
+Architecture.md
+ImplementationPlan.md
+ProblemStatement.md
+data/
+logs/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.github/
+deploy/
+*.dump
+tests/
