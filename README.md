@@ -8,11 +8,12 @@ AI-powered platform that transforms unstructured user feedback into structured, 
 |----------|-----|
 | **Repository** | https://github.com/ankitashok15/Review-Analyzer |
 | **Live Dashboard (Frontend)** | https://ankitashok15.github.io/Review-Analyzer/ |
+| **Live API (Railway)** | https://review-analyzer-production-453f.up.railway.app |
+| **API docs (live)** | https://review-analyzer-production-453f.up.railway.app/docs |
 | **Deploy API (Railway)** | [docs/railway-deploy.md](docs/railway-deploy.md) |
 | **Deploy API (Cloudflare Tunnel — local demo)** | [docs/cloudflare-tunnel-deploy.md](docs/cloudflare-tunnel-deploy.md) |
-| **API docs (local)** | http://localhost:8000/docs |
 
-> **Hosting:** Frontend on GitHub Pages + API on [Railway](docs/railway-deploy.md) + database on Neon. Set `RENDER_API_URL` to your Railway API URL, then redeploy the frontend.
+> **Hosting:** Frontend on GitHub Pages + API on Railway + database on Neon. Live API: `https://review-analyzer-production-453f.up.railway.app`
 
 ## Stack
 
