@@ -84,6 +84,8 @@ Expected:
 
 Swagger UI: `https://YOUR-PROJECT.vercel.app/docs`
 
+Root URL `https://YOUR-PROJECT.vercel.app/` should return a JSON welcome payload (not 404).
+
 ---
 
 ## Step 4 — Connect GitHub Pages frontend
@@ -100,8 +102,8 @@ Test: https://ankitashok15.github.io/Review-Analyzer/
 
 | File | Purpose |
 |------|---------|
-| `api/index.py` | Vercel entrypoint (`app` export) |
-| `vercel.json` | Install command, 60s timeout, 1GB memory |
+| `main.py` | Vercel zero-config entrypoint (all routes at domain root) |
+| `vercel.json` | Install command only — no `functions` block |
 | `requirements-vercel.txt` | Production Python deps (no pytest/celery) |
 | `pyproject.toml` | `tool.vercel.entrypoint` |
 | `.vercelignore` | Excludes frontend, tests, docs from upload |
@@ -124,6 +126,7 @@ Test: https://ankitashok15.github.io/Review-Analyzer/
 
 | Problem | Fix |
 |---------|-----|
+| 404 on `/` or `/health` | Use root `main.py` (not `api/index.py`). Redeploy latest `main` branch. |
 | Build fails | Check Vercel build logs; ensure `requirements-vercel.txt` installs |
 | `db: disconnected` | Use Neon **pooled** URL; prefix `postgresql://` not `postgres://` |
 | CORS errors | Add `https://ankitashok15.github.io` to `CORS_ORIGINS` |

@@ -83,6 +83,15 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     )
 
 
+@app.get("/")
+def root() -> dict:
+    return {
+        "service": "review-discovery-engine",
+        "health": "/health",
+        "docs": "/docs",
+    }
+
+
 @app.get("/health")
 def health_check(detailed: bool = Query(default=False)) -> dict:
     return build_health_report(detailed=detailed)
