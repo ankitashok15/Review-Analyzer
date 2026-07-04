@@ -128,17 +128,29 @@ Only needed for insight caching / Celery. Skip for demo.
 
 ## How deployment works
 
-On each deploy:
+On each deploy, Railway builds the Dockerfile and runs `scripts/start_api.sh`:
 
-1. **`preDeployCommand`** — `alembic upgrade head` runs against Neon (before the service goes live)
-2. **`startCommand`** — `uvicorn` binds to **`0.0.0.0`** on Railway's injected **`$PORT`**
-3. **Healthcheck** — Railway GETs `/health/live` until HTTP 200
+1. **Uvicorn starts immediately** on Railway's `$PORT` (required for healthcheck)
+2. **Migrations run in the background** (`alembic upgrade head`) — non-blocking
 
-Config: `railway.toml`
+Config: `railway.toml` (healthcheck on `/health/live` only).
+
+> **Do not** set a custom Start Command or Pre-deploy Command in the Railway dashboard — they override the Dockerfile and often cause failures.
 
 ---
 
 ## Troubleshooting
+
+### Deployment failed (before healthcheck)
+
+Usually **`preDeployCommand`** or a custom **Start Command** in the Railway dashboard. Clear both under **Settings → Deploy**, then redeploy latest `main`.
+
+| Log | Fix |
+|-----|-----|
+| `Pre-deploy command failed` | Remove pre-deploy command in dashboard; migrations run at startup instead |
+| `Invalid value for '--port'` | Clear custom Start Command in dashboard |
+| `alembic` / DB error at startup | Set `DATABASE_URL` in **Variables** (Neon pooled URL) — API still starts; migrations retry in background |
+| Python traceback on import | Paste full log — usually missing env var |
 
 ### Network healthcheck failure
 
@@ -151,14 +163,14 @@ Railway sends `GET /health/live` to your app on the **`PORT`** env var. If the a
 | `Uvicorn running on http://0.0.0.0:XXXX` | Good — note the port number |
 | `Invalid value for '--port': '$PORT'` | Broken start command — pull latest `main` (uses shell-form `$PORT`) |
 | `bash\r: No such file` | Old CRLF script — pull latest `main` |
-| `alembic` / DB connection errors in **preDeploy** | Fix `DATABASE_URL` in Variables |
+| `alembic` / DB connection errors | Fix `DATABASE_URL` in Variables |
 | No uvicorn line at all | Container crashed on import — scroll up for traceback |
 
 **Railway dashboard checks:**
 
 1. **Variables** — `DATABASE_URL` must be set (Neon pooled URL). **Do not** manually set `PORT` unless Railway support told you to.
 2. **Settings → Deploy** — Healthcheck Path should be `/health/live` (or leave blank; `railway.toml` sets it).
-3. **Settings → Deploy → Start Command** — Clear any custom command, or redeploy from latest `main` so `railway.toml` overrides it.
+3. **Settings → Deploy** — **Clear** any custom Start Command and Pre-deploy Command (leave blank)
 4. **Settings → Networking** — After deploy succeeds, **Generate Domain** if you have no public URL yet.
 
 **Verify locally after pull:**
