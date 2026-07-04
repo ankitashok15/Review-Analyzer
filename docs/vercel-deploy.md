@@ -28,9 +28,9 @@ Neon          →  PostgreSQL + pgvector
 |---------|-------|
 | Framework Preset | **Other** |
 | Root Directory | `.` (repo root) |
-| Build Command | *(leave empty — `vercel.json` handles it)* |
-| Output Directory | *(leave empty)* |
-| Install Command | `pip install -r requirements-vercel.txt` |
+| Build Command | *(leave empty)* |
+| Output Directory | *(leave empty — do NOT set `frontend/dist`)* |
+| Install Command | *(leave empty — uses `api/requirements.txt`)* |
 
 4. Do **not** deploy yet — add environment variables first.
 
@@ -102,8 +102,9 @@ Test: https://ankitashok15.github.io/Review-Analyzer/
 
 | File | Purpose |
 |------|---------|
-| `main.py` | Vercel zero-config entrypoint (all routes at domain root) |
-| `vercel.json` | Install command only — no `functions` block |
+| `api/index.py` | Vercel serverless entrypoint |
+| `api/requirements.txt` | Python deps for the function |
+| `vercel.json` | Rewrites all routes + bundles `src/`, `config/`, `alembic/` |
 | `requirements-vercel.txt` | Production Python deps (no pytest/celery) |
 | `pyproject.toml` | `tool.vercel.entrypoint` |
 | `.vercelignore` | Excludes frontend, tests, docs from upload |
@@ -126,7 +127,8 @@ Test: https://ankitashok15.github.io/Review-Analyzer/
 
 | Problem | Fix |
 |---------|-----|
-| 404 on `/` or `/health` | Use root `main.py` (not `api/index.py`). Redeploy latest `main` branch. |
+| 404 on all routes | Clear **Output Directory** in Vercel Settings; redeploy latest `main` |
+| 404 on `/` or `/health` | Ensure `vercel.json` rewrites exist; check deployment **Functions** tab shows `api/index.py` |
 | Build fails | Check Vercel build logs; ensure `requirements-vercel.txt` installs |
 | `db: disconnected` | Use Neon **pooled** URL; prefix `postgresql://` not `postgres://` |
 | CORS errors | Add `https://ankitashok15.github.io` to `CORS_ORIGINS` |
