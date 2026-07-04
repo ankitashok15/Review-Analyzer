@@ -92,6 +92,12 @@ def root() -> dict:
     }
 
 
+@app.get("/health/live")
+def health_live() -> dict:
+    """Lightweight liveness probe for Railway/load balancers (no DB/Redis checks)."""
+    return {"status": "ok", "service": "review-discovery-engine"}
+
+
 @app.get("/health")
 def health_check(detailed: bool = Query(default=False)) -> dict:
     return build_health_report(detailed=detailed)

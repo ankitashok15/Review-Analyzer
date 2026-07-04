@@ -153,6 +153,7 @@ Railway charges for **uptime + RAM/CPU**. A small API service is typically **$3â
 
 | Problem | Fix |
 |---------|-----|
+| **Healthcheck failure** | Usually the container never started. Check **Deploy logs** for `bash\r` or migration errors. Latest fix: LF line endings in `start_api.sh`, health probe at `/health/live`. Redeploy after pulling latest `main`. |
 | Build fails | Check **Deployments** â†’ **View logs**; often missing env var |
 | `db: disconnected` | Wrong `DATABASE_URL`; use Neon **pooled** URL with `sslmode=require` |
 | CORS error in browser | Add `https://ankitashok15.github.io` to `CORS_ORIGINS` |

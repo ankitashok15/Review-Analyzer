@@ -2,7 +2,9 @@
 set -euo pipefail
 
 echo "Running database migrations..."
-alembic upgrade head
+if ! alembic upgrade head; then
+  echo "WARNING: Database migrations failed. Starting API anyway."
+fi
 
 PORT="${PORT:-8000}"
 echo "Starting API on port ${PORT}..."

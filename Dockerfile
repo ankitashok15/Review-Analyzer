@@ -15,8 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN chmod +x scripts/start_api.sh
+RUN sed -i 's/\r$//' scripts/start_api.sh && chmod +x scripts/start_api.sh
 
 EXPOSE 8000
 
-CMD ["scripts/start_api.sh"]
+CMD ["bash", "scripts/start_api.sh"]
