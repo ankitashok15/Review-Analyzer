@@ -130,9 +130,9 @@ Only needed for insight caching / Celery. Skip for demo.
 
 On each deploy:
 
-1. **`startCommand`** in `railway.toml` starts uvicorn on Railway's `$PORT` (shell form — required)
-2. **Healthcheck** hits `/health/live` (instant 200, no DB check)
-3. Migrations are **not** run on Railway (Neon is already migrated). Run locally: `alembic upgrade head`
+1. **`railway.json`** runs `scripts/railway_entrypoint.sh` (reads `$PORT` correctly on Railway V2)
+2. **Healthcheck** hits `/health/live`
+3. Migrations are **not** run on Railway (Neon is already migrated)
 
 ---
 
@@ -147,10 +147,10 @@ This almost always means **the app is not listening on Railway's `$PORT`**, not 
 | Setting | What to do |
 |---------|------------|
 | **Variables → `PORT`** | **Delete it** if you added it manually. Railway injects `PORT` automatically. A wrong value breaks healthchecks. |
-| **Settings → Deploy → Start Command** | **Leave blank** (or delete). `railway.toml` sets the correct command. |
+| **Settings → Deploy → Start Command** | Should be `/bin/sh scripts/railway_entrypoint.sh` from `railway.json` — **not** the old inline uvicorn line with `${PORT:-8000}` |
 | **Settings → Deploy → Pre-deploy Command** | **Leave blank** |
-| **Settings → Deploy → Healthcheck Path** | `/health/live` or leave blank |
-| **Settings → Networking → Target port** | If you set a custom target port, add **`PORT`** variable matching it (e.g. both `8000`) |
+| **Settings → Deploy → Healthcheck Path** | `/health/live` or leave blank (`railway.json` sets it) |
+| **Settings → Networking → Multi-region** | Remove extra regions unless you need them — single region is simpler |
 
 #### Step 2 — Check deploy logs
 
