@@ -3,7 +3,8 @@
 | Layer | Service | Guide |
 |-------|---------|-------|
 | Database | **Neon** (done) | — |
-| API | **Vercel** (recommended) | [vercel-deploy.md](vercel-deploy.md) |
+| API | **Railway** (recommended) | [railway-deploy.md](railway-deploy.md) |
+| API | **Vercel** | [vercel-deploy.md](vercel-deploy.md) |
 | API (no card / fallback) | **Cloudflare Tunnel** | [cloudflare-tunnel-deploy.md](cloudflare-tunnel-deploy.md) |
 | Frontend | **GitHub Pages** (done) | Set `RENDER_API_URL` |
 
