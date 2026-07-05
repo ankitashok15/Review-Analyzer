@@ -41,6 +41,7 @@ export interface AskResponse {
   citations: Citation[];
   related_insights: string[];
   retrieval_count: number;
+  answer_mode?: "grounded" | "general";
 }
 
 export interface Enrichment {

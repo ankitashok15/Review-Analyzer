@@ -2,6 +2,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from config.settings import get_settings
 from src.insights.service import InsightService
 from src.rag.answer_generator import AnswerGenerator
 from src.rag.retriever import RagRetriever
@@ -10,6 +11,7 @@ from src.retrieval.schemas import SearchFilters
 from src.storage.models import InsightCache
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 MIN_RELEVANCE_SCORE = 0.15
 MAX_RELATED_INSIGHTS = 3
@@ -49,7 +51,11 @@ class RagService:
 
         if not retrieved:
             logger.info("RAG: no retrieval results for question=%r", question)
-            return self.answer_generator.insufficient_evidence(question, retrieval_count=0)
+            return self._fallback_or_insufficient(
+                question,
+                retrieval_count=0,
+                allow_fallback=request.allow_fallback,
+            )
 
         top_score = max(item.score for item in retrieved)
         if top_score < self.min_relevance_score:
@@ -58,15 +64,45 @@ class RagService:
                 top_score,
                 self.min_relevance_score,
             )
-            return self.answer_generator.insufficient_evidence(
+            return self._fallback_or_insufficient(
                 question,
                 retrieval_count=len(retrieved),
+                allow_fallback=request.allow_fallback,
             )
 
         insight_snippets = (
             self._related_insights(retrieved) if request.include_insights else []
         )
-        return self.answer_generator.generate(question, retrieved, insight_snippets)
+        try:
+            return self.answer_generator.generate(question, retrieved, insight_snippets)
+        except Exception as exc:
+            logger.warning("RAG generation failed for question=%r: %s", question, exc)
+            if request.allow_fallback and settings.rag_fallback_enabled:
+                return self.answer_generator.generate_fallback(
+                    question,
+                    retrieval_count=len(retrieved),
+                )
+            raise
+
+    def _fallback_or_insufficient(
+        self,
+        question: str,
+        *,
+        retrieval_count: int,
+        allow_fallback: bool,
+    ) -> AskResponse:
+        if allow_fallback and settings.rag_fallback_enabled:
+            try:
+                return self.answer_generator.generate_fallback(
+                    question,
+                    retrieval_count=retrieval_count,
+                )
+            except Exception as exc:
+                logger.warning("Fallback generation failed: %s", exc)
+        return self.answer_generator.insufficient_evidence(
+            question,
+            retrieval_count=retrieval_count,
+        )
 
     def _related_insights(self, retrieved: list[RetrievedReview]) -> list[InsightSnippet]:
         retrieved_ids = {str(review.review_id) for review in retrieved}

@@ -88,28 +88,55 @@ def test_answer_generator_insufficient_evidence_response():
     assert response.confidence == "low"
     assert response.citations == []
     assert response.retrieval_count == 0
+    assert response.answer_mode == "general"
     assert "Insufficient evidence" in response.answer
 
 
+def test_answer_generator_fallback_response():
+    mock_gemini = MagicMock()
+    mock_gemini.generate_json.return_value = {
+        "answer": "This is general guidance, not from your review dataset. Users often struggle with discovery.",
+    }
+    generator = AnswerGenerator(gemini_client=mock_gemini)
+    response = generator.generate_fallback("Why is discovery hard?", retrieval_count=2)
+
+    assert response.answer_mode == "general"
+    assert response.confidence == "low"
+    assert response.citations == []
+    assert response.retrieval_count == 2
+    assert "general guidance" in response.answer.lower()
+
+
 @patch("src.rag.service.RagRetriever")
-def test_rag_service_no_retrieval_skips_llm(mock_retriever_cls):
+def test_rag_service_no_retrieval_uses_fallback(mock_retriever_cls):
     mock_retriever = MagicMock()
     mock_retriever.retrieve.return_value = ("query", [])
     mock_retriever_cls.return_value = mock_retriever
 
+    mock_generator = MagicMock()
+    mock_generator.generate_fallback.return_value = MagicMock(
+        question="Why do users struggle to discover new music?",
+        answer="General guidance about discovery challenges.",
+        confidence="low",
+        citations=[],
+        related_insights=[],
+        retrieval_count=0,
+        answer_mode="general",
+    )
+
     db = SessionLocal()
     try:
-        service = RagService(db, retriever=mock_retriever)
+        service = RagService(db, retriever=mock_retriever, answer_generator=mock_generator)
         response = service.ask(AskRequest(question="Why do users struggle to discover new music?"))
+        mock_generator.generate_fallback.assert_called_once()
+        assert response.answer_mode == "general"
         assert response.retrieval_count == 0
-        assert response.citations == []
-        assert "Insufficient evidence" in response.answer
     finally:
         db.close()
 
 
 @patch("src.rag.service.RagRetriever")
-def test_rag_service_low_score_skips_llm(mock_retriever_cls):
+def test_rag_service_low_score_uses_fallback(mock_retriever_cls):
     review = _sample_review()
     mock_retriever = MagicMock()
     mock_retriever.retrieve.return_value = (
@@ -118,13 +145,24 @@ def test_rag_service_low_score_skips_llm(mock_retriever_cls):
     )
     mock_retriever_cls.return_value = mock_retriever
 
+    mock_generator = MagicMock()
+    mock_generator.generate_fallback.return_value = MagicMock(
+        question="Why is discovery hard?",
+        answer="General guidance.",
+        confidence="low",
+        citations=[],
+        related_insights=[],
+        retrieval_count=1,
+        answer_mode="general",
+    )
+
     db = SessionLocal()
     try:
-        service = RagService(db, retriever=mock_retriever, min_relevance_score=MIN_RELEVANCE_SCORE)
+        service = RagService(db, retriever=mock_retriever, answer_generator=mock_generator, min_relevance_score=MIN_RELEVANCE_SCORE)
         response = service.ask(AskRequest(question="Why is discovery hard?"))
+        mock_generator.generate_fallback.assert_called_once()
+        assert response.answer_mode == "general"
         assert response.retrieval_count == 1
-        assert response.citations == []
-        assert "Insufficient evidence" in response.answer
     finally:
         db.close()
 
@@ -155,6 +193,7 @@ def test_rag_service_calls_generator_when_evidence_ok(mock_retriever_cls, mock_g
         ],
         related_insights=[],
         retrieval_count=1,
+        answer_mode="grounded",
     )
     mock_generator_cls.return_value = mock_generator
 
@@ -165,6 +204,36 @@ def test_rag_service_calls_generator_when_evidence_ok(mock_retriever_cls, mock_g
         mock_generator.generate.assert_called_once()
         assert response.confidence == "high"
         assert response.retrieval_count == 1
+    finally:
+        db.close()
+
+
+@patch("src.rag.service.RagRetriever")
+def test_rag_service_generation_failure_uses_fallback(mock_retriever_cls):
+    review = _sample_review()
+    retrieved = [_retrieved(review, score=0.8)]
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve.return_value = ("query", retrieved)
+    mock_retriever_cls.return_value = mock_retriever
+
+    mock_generator = MagicMock()
+    mock_generator.generate.side_effect = RuntimeError("quota exceeded")
+    mock_generator.generate_fallback.return_value = MagicMock(
+        question="Why is discovery hard?",
+        answer="General guidance.",
+        confidence="low",
+        citations=[],
+        related_insights=[],
+        retrieval_count=1,
+        answer_mode="general",
+    )
+
+    db = SessionLocal()
+    try:
+        service = RagService(db, retriever=mock_retriever, answer_generator=mock_generator)
+        response = service.ask(AskRequest(question="Why is discovery hard?"))
+        mock_generator.generate_fallback.assert_called_once()
+        assert response.answer_mode == "general"
     finally:
         db.close()
 

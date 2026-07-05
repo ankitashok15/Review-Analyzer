@@ -65,11 +65,19 @@ export function AskPage() {
 
       {askMutation.data && (
         <div className="space-y-4">
+          {askMutation.data.answer_mode === "general" && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              General AI insight — not backed by embedded reviews in this dataset.
+            </div>
+          )}
           <div className="card">
-            <div className="mb-3 flex items-center gap-2">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="badge bg-brand-50 text-brand-700">
                 {askMutation.data.confidence} confidence
               </span>
+              {askMutation.data.answer_mode === "grounded" && (
+                <span className="badge bg-emerald-50 text-emerald-700">evidence-backed</span>
+              )}
               <span className="text-xs text-slate-400">
                 {askMutation.data.retrieval_count} reviews retrieved
               </span>

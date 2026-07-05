@@ -8,6 +8,7 @@ from src.retrieval.schemas import SearchFilters
 
 
 ConfidenceLevel = Literal["high", "medium", "low"]
+AnswerMode = Literal["grounded", "general"]
 
 
 class AskRequest(BaseModel):
@@ -16,6 +17,7 @@ class AskRequest(BaseModel):
     top_k: int = Field(default=15, ge=1, le=50)
     rewrite_query: bool = False
     include_insights: bool = True
+    allow_fallback: bool = True
 
 
 class Citation(BaseModel):
@@ -32,6 +34,7 @@ class AskResponse(BaseModel):
     citations: list[Citation]
     related_insights: list[str]
     retrieval_count: int
+    answer_mode: AnswerMode = "grounded"
 
 
 @dataclass
@@ -68,3 +71,7 @@ class RagGenerationOutput(BaseModel):
 
 class QueryRewriteOutput(BaseModel):
     rewritten_query: str
+
+
+class FallbackOutput(BaseModel):
+    answer: str

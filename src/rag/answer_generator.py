@@ -7,6 +7,7 @@ from src.rag.prompt_builder import RAG_SYSTEM_INSTRUCTION, build_rag_prompt
 from src.rag.schemas import (
     AskResponse,
     Citation,
+    FallbackOutput,
     InsightSnippet,
     RagGenerationOutput,
     RetrievedReview,
@@ -19,6 +20,17 @@ INSUFFICIENT_EVIDENCE_ANSWER = (
     "Insufficient evidence in the review corpus to answer this question confidently. "
     "Try broadening your question or ensure more reviews are embedded for semantic search."
 )
+
+FALLBACK_SYSTEM_INSTRUCTION = """You are a product research assistant for a music streaming app review analyzer.
+The user asked a research question but the system could not produce an evidence-backed answer from the embedded review corpus.
+Provide a concise, helpful general answer about typical user behavior and product patterns in music streaming apps
+(discovery, recommendations, playlists, shuffle, personalization, ads, premium tiers, etc.).
+
+Rules:
+- Start with one sentence noting this is general guidance, NOT derived from the user's review dataset.
+- Do not invent specific review quotes, user counts, percentages, or statistics.
+- Use markdown bullets when helpful.
+- Stay relevant to the question."""
 
 
 def _normalize_excerpt(excerpt: str) -> str:
@@ -75,6 +87,35 @@ class AnswerGenerator:
             citations=citations,
             related_insights=[insight.insight_id for insight in (insights or [])],
             retrieval_count=len(reviews),
+            answer_mode="grounded",
+        )
+
+    def generate_fallback(
+        self,
+        question: str,
+        *,
+        retrieval_count: int = 0,
+    ) -> AskResponse:
+        prompt = (
+            f"Research question:\n{question.strip()}\n\n"
+            "Provide general product-research context that helps the user understand likely themes, "
+            "without claiming they come from a specific review dataset."
+        )
+        raw = self.gemini.generate_json(
+            prompt,
+            FallbackOutput,
+            model=settings.gemini_rag_model,
+            system_instruction=FALLBACK_SYSTEM_INSTRUCTION,
+        )
+        parsed = FallbackOutput.model_validate(raw)
+        return AskResponse(
+            question=question.strip(),
+            answer=parsed.answer.strip(),
+            confidence="low",
+            citations=[],
+            related_insights=[],
+            retrieval_count=retrieval_count,
+            answer_mode="general",
         )
 
     def insufficient_evidence(self, question: str, *, retrieval_count: int) -> AskResponse:
@@ -85,6 +126,7 @@ class AnswerGenerator:
             citations=[],
             related_insights=[],
             retrieval_count=retrieval_count,
+            answer_mode="general",
         )
 
     def _validate_citations(

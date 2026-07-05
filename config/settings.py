@@ -43,6 +43,7 @@ class Settings(BaseSettings):
 
     max_query_length: int = 2000
     job_result_ttl_seconds: int = 86400
+    rag_fallback_enabled: bool = True
 
     @model_validator(mode="after")
     def apply_neon_database_url(self) -> "Settings":
