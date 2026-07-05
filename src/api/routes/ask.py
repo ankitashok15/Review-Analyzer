@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -8,6 +10,7 @@ from src.rag.service import RagService
 from src.security.sanitize import sanitize_query
 
 router = APIRouter(prefix="/api/v1", tags=["ask"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/ask", response_model=AskResponse)
@@ -27,5 +30,6 @@ def ask_question(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except HTTPException:
         raise
-    except Exception:
-        return AnswerGenerator.static_fallback(question, retrieval_count=0)
+    except Exception as exc:
+        logger.exception("Ask route failed for question=%r", question)
+        return AnswerGenerator().insufficient_evidence(question, retrieval_count=0)

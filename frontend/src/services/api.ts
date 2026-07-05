@@ -38,10 +38,19 @@ async function requestAsk(question: string, topK: number): Promise<AskResponse> 
   try {
     return await request<AskResponse>("/api/v1/ask", {
       method: "POST",
-      body: JSON.stringify({ question, top_k: topK, include_insights: true }),
+      body: JSON.stringify({
+        question,
+        top_k: topK,
+        include_insights: true,
+        allow_fallback: true,
+      }),
     });
-  } catch {
-    return buildClientAskFallback(question);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Request failed";
+    if (message === "Failed to fetch") {
+      return buildClientAskFallback(question);
+    }
+    throw err;
   }
 }
 

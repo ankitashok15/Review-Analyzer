@@ -157,6 +157,70 @@ class AnswerGenerator:
             answer_mode="grounded",
         )
 
+    def summarize_from_evidence(
+        self,
+        question: str,
+        reviews: list[RetrievedReview],
+        insights: list[InsightSnippet] | None = None,
+    ) -> AskResponse:
+        """Grounded answer from retrieved excerpts when Gemini synthesis is unavailable."""
+        sorted_reviews = sorted(reviews, key=lambda review: review.score, reverse=True)
+        citation_pool = sorted_reviews[:8]
+        theme_lines: list[str] = []
+
+        for review in sorted_reviews[:6]:
+            snippet = (review.summary or review.excerpt or review.body).strip()
+            if len(snippet) > 220:
+                snippet = snippet[:220] + "…"
+            meta: list[str] = []
+            if review.primary_topic:
+                meta.append(review.primary_topic)
+            if review.sentiment:
+                meta.append(review.sentiment)
+            suffix = f" ({', '.join(meta)})" if meta else ""
+            theme_lines.append(f"- {snippet}{suffix}")
+
+        top_score = sorted_reviews[0].score if sorted_reviews else 0.0
+        if top_score >= 0.5:
+            confidence = "high"
+        elif top_score >= 0.25:
+            confidence = "medium"
+        else:
+            confidence = "low"
+
+        answer = (
+            f"Based on **{len(reviews)}** matching reviews from the embedded dataset:\n\n"
+            + "\n".join(theme_lines)
+            + "\n\n"
+            "_Answer compiled from retrieved review excerpts "
+            "(AI synthesis unavailable due to quota or model errors)._"
+        )
+
+        citations: list[Citation] = []
+        seen: set[uuid.UUID] = set()
+        for review in citation_pool:
+            if review.review_id in seen:
+                continue
+            seen.add(review.review_id)
+            citations.append(
+                Citation(
+                    review_id=review.review_id,
+                    excerpt=_resolve_excerpt(review.excerpt, review),
+                    source=review.source,
+                    relevance_score=round(min(max(review.score, 0.0), 1.0), 6),
+                )
+            )
+
+        return AskResponse(
+            question=question.strip(),
+            answer=answer,
+            confidence=confidence,
+            citations=citations,
+            related_insights=[insight.insight_id for insight in (insights or [])],
+            retrieval_count=len(reviews),
+            answer_mode="grounded",
+        )
+
     def generate_fallback(
         self,
         question: str,
@@ -212,7 +276,15 @@ class AnswerGenerator:
         )
 
     def insufficient_evidence(self, question: str, *, retrieval_count: int) -> AskResponse:
-        return self.static_fallback(question, retrieval_count=retrieval_count)
+        return AskResponse(
+            question=question.strip(),
+            answer=INSUFFICIENT_EVIDENCE_ANSWER,
+            confidence="low",
+            citations=[],
+            related_insights=[],
+            retrieval_count=retrieval_count,
+            answer_mode="general",
+        )
 
     def _validate_citations(
         self,

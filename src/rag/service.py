@@ -46,7 +46,7 @@ class RagService:
             return self._ask_with_retrieval(request, question)
         except Exception as exc:
             logger.warning("RAG ask failed for question=%r: %s", question, exc)
-            return self._fallback_or_insufficient(
+            return self._insufficient_only(
                 question,
                 retrieval_count=0,
                 allow_fallback=request.allow_fallback,
@@ -62,7 +62,7 @@ class RagService:
 
         if not retrieved:
             logger.info("RAG: no retrieval results for question=%r", question)
-            return self._fallback_or_insufficient(
+            return self._insufficient_only(
                 question,
                 retrieval_count=0,
                 allow_fallback=request.allow_fallback,
@@ -75,7 +75,7 @@ class RagService:
                 top_score,
                 self.min_relevance_score,
             )
-            return self._fallback_or_insufficient(
+            return self._insufficient_only(
                 question,
                 retrieval_count=len(retrieved),
                 allow_fallback=request.allow_fallback,
@@ -88,26 +88,20 @@ class RagService:
             return self.answer_generator.generate(question, retrieved, insight_snippets)
         except Exception as exc:
             logger.warning("RAG generation failed for question=%r: %s", question, exc)
-            if request.allow_fallback and settings.rag_fallback_enabled:
-                try:
-                    return self.answer_generator.generate_fallback(
-                        question,
-                        retrieval_count=len(retrieved),
-                    )
-                except Exception as fallback_exc:
-                    logger.warning("Fallback generation also failed: %s", fallback_exc)
-            return self.answer_generator.insufficient_evidence(
+            return self.answer_generator.summarize_from_evidence(
                 question,
-                retrieval_count=len(retrieved),
+                retrieved,
+                insight_snippets,
             )
 
-    def _fallback_or_insufficient(
+    def _insufficient_only(
         self,
         question: str,
         *,
         retrieval_count: int,
         allow_fallback: bool,
     ) -> AskResponse:
+        """LLM general answer only when the corpus has insufficient matching evidence."""
         if allow_fallback and settings.rag_fallback_enabled:
             try:
                 return self.answer_generator.generate_fallback(

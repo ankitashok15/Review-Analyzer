@@ -83,12 +83,25 @@ def test_answer_generator_drops_hallucinated_citations():
 
 
 def test_answer_generator_insufficient_evidence_response():
-    response = AnswerGenerator.static_fallback("Unknown topic?", retrieval_count=0)
+    response = AnswerGenerator().insufficient_evidence("Unknown topic?", retrieval_count=0)
     assert response.confidence == "low"
     assert response.citations == []
     assert response.retrieval_count == 0
     assert response.answer_mode == "general"
-    assert "General product guidance" in response.answer
+    assert "Insufficient evidence" in response.answer
+
+
+def test_answer_generator_summarize_from_evidence():
+    review = _sample_review()
+    retrieved = [_retrieved(review, score=0.72)]
+    response = AnswerGenerator().summarize_from_evidence("Why is discovery hard?", retrieved)
+
+    assert response.answer_mode == "grounded"
+    assert response.confidence in {"high", "medium", "low"}
+    assert response.retrieval_count == 1
+    assert len(response.citations) == 1
+    assert response.citations[0].review_id == review.id
+    assert "embedded dataset" in response.answer
 
 
 def test_answer_generator_fallback_response():
@@ -208,7 +221,7 @@ def test_rag_service_calls_generator_when_evidence_ok(mock_retriever_cls, mock_g
 
 
 @patch("src.rag.service.RagRetriever")
-def test_rag_service_generation_failure_uses_fallback(mock_retriever_cls):
+def test_rag_service_generation_failure_uses_evidence_summary(mock_retriever_cls):
     review = _sample_review()
     retrieved = [_retrieved(review, score=0.8)]
     mock_retriever = MagicMock()
@@ -217,22 +230,23 @@ def test_rag_service_generation_failure_uses_fallback(mock_retriever_cls):
 
     mock_generator = MagicMock()
     mock_generator.generate.side_effect = RuntimeError("quota exceeded")
-    mock_generator.generate_fallback.return_value = MagicMock(
+    mock_generator.summarize_from_evidence.return_value = MagicMock(
         question="Why is discovery hard?",
-        answer="General guidance.",
-        confidence="low",
-        citations=[],
+        answer="Based on 1 matching reviews from the embedded dataset.",
+        confidence="high",
+        citations=[{"review_id": review.id}],
         related_insights=[],
         retrieval_count=1,
-        answer_mode="general",
+        answer_mode="grounded",
     )
 
     db = SessionLocal()
     try:
         service = RagService(db, retriever=mock_retriever, answer_generator=mock_generator)
         response = service.ask(AskRequest(question="Why is discovery hard?"))
-        mock_generator.generate_fallback.assert_called_once()
-        assert response.answer_mode == "general"
+        mock_generator.summarize_from_evidence.assert_called_once()
+        mock_generator.generate_fallback.assert_not_called()
+        assert response.answer_mode == "grounded"
     finally:
         db.close()
 
@@ -247,23 +261,22 @@ def test_rag_service_generation_and_fallback_failure_returns_insufficient(mock_r
 
     mock_generator = MagicMock()
     mock_generator.generate.side_effect = RuntimeError("quota exceeded")
-    mock_generator.generate_fallback.side_effect = RuntimeError("quota exceeded")
-    mock_generator.insufficient_evidence.return_value = MagicMock(
+    mock_generator.summarize_from_evidence.return_value = MagicMock(
         question="Why is discovery hard?",
-        answer="General product guidance — not from your embedded review dataset.",
-        confidence="low",
+        answer="Based on 1 matching reviews from the embedded dataset.",
+        confidence="high",
         citations=[],
         related_insights=[],
         retrieval_count=1,
-        answer_mode="general",
+        answer_mode="grounded",
     )
 
     db = SessionLocal()
     try:
         service = RagService(db, retriever=mock_retriever, answer_generator=mock_generator)
         response = service.ask(AskRequest(question="Why is discovery hard?"))
-        mock_generator.insufficient_evidence.assert_called_once()
-        assert "General product guidance" in response.answer
+        mock_generator.summarize_from_evidence.assert_called_once()
+        assert response.answer_mode == "grounded"
     finally:
         db.close()
 
