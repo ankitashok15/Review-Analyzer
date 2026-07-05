@@ -5,6 +5,48 @@ from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def normalize_database_url(url: str) -> str:
+    """Normalize common Railway/Neon paste mistakes before SQLAlchemy parses the URL."""
+    cleaned = url.strip()
+    if not cleaned:
+        return cleaned
+
+    if (cleaned.startswith('"') and cleaned.endswith('"')) or (
+        cleaned.startswith("'") and cleaned.endswith("'")
+    ):
+        cleaned = cleaned[1:-1].strip()
+
+    if cleaned.startswith("${") or cleaned.startswith("$("):
+        raise ValueError(
+            "DATABASE_URL looks like an unexpanded Railway reference "
+            "(e.g. ${{Postgres.DATABASE_URL}}). Paste the full Neon URL instead."
+        )
+
+    if cleaned.startswith("postgres://"):
+        cleaned = "postgresql://" + cleaned[len("postgres://") :]
+
+    return cleaned
+
+
+def validate_database_url(url: str) -> str:
+    cleaned = normalize_database_url(url)
+    if not cleaned:
+        raise ValueError(
+            "DATABASE_URL is empty. Set DATABASE_URL or NEON_DATABASE_URL to your Neon "
+            "postgresql:// connection string (pooled URL with ?sslmode=require)."
+        )
+
+    parsed = urlparse(cleaned)
+    if parsed.scheme not in {"postgresql", "postgres"}:
+        raise ValueError(
+            f"DATABASE_URL must start with postgresql:// (got scheme {parsed.scheme!r})."
+        )
+    if not parsed.hostname:
+        raise ValueError("DATABASE_URL is missing a hostname.")
+
+    return cleaned
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -50,8 +92,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def apply_neon_database_url(self) -> "Settings":
-        if self.neon_database_url.strip():
-            self.database_url = self.neon_database_url.strip()
+        raw_url = self.neon_database_url.strip() or self.database_url
+        self.database_url = validate_database_url(raw_url)
         return self
 
     @property

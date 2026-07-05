@@ -10,5 +10,8 @@ case "$port" in
     ;;
 esac
 
+echo "Railway entrypoint: validating DATABASE_URL"
+python -c "from config.settings import get_settings; s=get_settings(); print(f'Database host: {s.database_host}')"
+
 echo "Railway entrypoint: binding 0.0.0.0:${port}"
 exec uvicorn src.api.main:app --host 0.0.0.0 --port "$port"

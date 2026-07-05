@@ -45,7 +45,12 @@ Wait ~5–10 minutes for the first build.
 Click your service → **Variables** tab → **Raw Editor** and paste (replace values where noted):
 
 ```env
+# Use ONE of these — both must be full postgresql:// URLs (no quotes, no ${{...}} references).
 DATABASE_URL=postgresql://neondb_owner:YOUR_PASSWORD@ep-damp-hat-at9v5j9d-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require
+
+# Optional: only if Railway injects a wrong DATABASE_URL from a linked Postgres service.
+# NEON_DATABASE_URL=postgresql://neondb_owner:YOUR_PASSWORD@ep-damp-hat-at9v5j9d-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require
+
 GOOGLE_API_KEY=your-google-ai-studio-key
 ADMIN_API_KEY=your-random-40-char-secret
 GEMINI_RAG_MODEL=gemini-2.5-flash-lite
@@ -61,7 +66,8 @@ REDIS_URL=redis://127.0.0.1:6379/0
 
 | Variable | Notes |
 |----------|-------|
-| `DATABASE_URL` | Neon **pooled** URL from [console.neon.tech](https://console.neon.tech) |
+| `DATABASE_URL` | Neon **pooled** URL from [console.neon.tech](https://console.neon.tech) — must start with `postgresql://` |
+| `NEON_DATABASE_URL` | Optional override when Railway links Postgres and overwrites `DATABASE_URL`; if set, it **replaces** `DATABASE_URL` |
 | `GEMINI_RAG_MODEL` | Use `gemini-2.5-flash-lite` on free tier (not `gemini-2.5-pro`) |
 | `REDIS_URL` | Placeholder is fine — API works without Redis |
 | `PORT` | **Do not add** — Railway sets this automatically. Adding it manually often breaks healthchecks. |
@@ -171,6 +177,34 @@ Push latest `main`, then **Redeploy** in Railway. First boot can take ~30–60s 
 #### Step 4 — Temporary workaround
 
 If you need to unblock deploy while debugging: **Settings → Deploy → Healthcheck Path** → clear it (empty). Deploy will succeed without waiting for HTTP 200. Re-enable `/health/live` once logs show uvicorn running.
+
+### Healthcheck fails / app crashes on startup (DATABASE_URL)
+
+If deploy logs show **SQLAlchemy cannot parse the database URL**, the service never starts and healthchecks fail.
+
+| Mistake | Fix |
+|---------|-----|
+| Quotes around URL | Remove `"` or `'` — paste raw `postgresql://...` only |
+| `${{Postgres.DATABASE_URL}}` | You linked Railway Postgres but it is empty/removed — paste the **full Neon URL** instead |
+| `NEON_DATABASE_URL` set to placeholder/empty | Delete `NEON_DATABASE_URL` or paste the real Neon URL (it overrides `DATABASE_URL`) |
+| Both vars set to different values | Keep **one** correct Neon URL in `DATABASE_URL`; use `NEON_DATABASE_URL` only to override a bad injected `DATABASE_URL` |
+| `postgres://` only | OK — app normalizes to `postgresql://` |
+| Special chars in password | URL-encode them (`@` → `%40`, `#` → `%23`) |
+
+**Recommended Railway Variables (Raw Editor):**
+
+```env
+DATABASE_URL=postgresql://neondb_owner:YOUR_PASSWORD@ep-damp-hat-at9v5j9d-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require
+```
+
+Do **not** add a Railway Postgres database service for this project — use Neon only.
+
+After saving variables, **Redeploy**. Deploy logs should show:
+
+```
+Railway entrypoint: validating DATABASE_URL
+Database host: ep-damp-hat-at9v5j9d-pooler.c-9.us-east-1.aws.neon.tech
+```
 
 ### Deployment failed (before healthcheck)
 
