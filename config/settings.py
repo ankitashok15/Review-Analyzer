@@ -24,7 +24,10 @@ class Settings(BaseSettings):
     vector_dimension: int = 768
     log_level: str = "INFO"
     log_format: str = "json"
-    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    cors_origins: str = (
+        "http://localhost:5173,http://127.0.0.1:5173,"
+        "https://ankitashok15.github.io"
+    )
 
     admin_api_key: str = ""
     admin_api_key_header: str = "X-API-Key"

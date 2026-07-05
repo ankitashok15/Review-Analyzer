@@ -19,11 +19,13 @@ def ask_question(
     if not question:
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
-    service = RagService(db)
     try:
+        service = RagService(db)
         sanitized = body.model_copy(update={"question": question})
         return service.ask(sanitized)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except Exception as exc:
+    except HTTPException:
+        raise
+    except Exception:
         return AnswerGenerator.static_fallback(question, retrieval_count=0)

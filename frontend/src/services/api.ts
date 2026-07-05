@@ -8,24 +8,41 @@ import type {
   SegmentsResponse,
   TopicsResponse,
 } from "../types/api";
+import { buildClientAskFallback } from "./askFallback";
 
 const API_BASE =
   import.meta.env.VITE_API_URL ||
   "https://review-analyzer-production-453f.up.railway.app";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    ...init,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+      ...init,
+    });
+  } catch {
+    throw new Error("Failed to fetch");
+  }
   if (!response.ok) {
     const detail = await response.json().catch(() => ({ detail: response.statusText }));
     throw new Error(detail.detail ?? `Request failed: ${response.status}`);
   }
   return response.json() as Promise<T>;
+}
+
+async function requestAsk(question: string, topK: number): Promise<AskResponse> {
+  try {
+    return await request<AskResponse>("/api/v1/ask", {
+      method: "POST",
+      body: JSON.stringify({ question, top_k: topK, include_insights: true }),
+    });
+  } catch {
+    return buildClientAskFallback(question);
+  }
 }
 
 export const api = {
@@ -37,11 +54,7 @@ export const api = {
       body: JSON.stringify({ query, filters, top_k: topK, hybrid: true }),
     }),
 
-  ask: (question: string, topK = 15) =>
-    request<AskResponse>("/api/v1/ask", {
-      method: "POST",
-      body: JSON.stringify({ question, top_k: topK, include_insights: true }),
-    }),
+  ask: (question: string, topK = 15) => requestAsk(question, topK),
 
   getReview: (id: string) => request<ReviewDetail>(`/api/v1/reviews/${id}`),
 

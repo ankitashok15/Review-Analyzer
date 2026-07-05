@@ -1,9 +1,11 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from config.settings import get_settings
 from src.api.routes.ask import router as ask_router
@@ -31,6 +33,18 @@ _cors_origins = [
 ]
 
 
+class EnsureCorsMiddleware(BaseHTTPMiddleware):
+    """Ensure CORS headers on every response (including error responses)."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        origin = request.headers.get("origin")
+        if origin and origin in _cors_origins:
+            response.headers.setdefault("Access-Control-Allow-Origin", origin)
+            response.headers.setdefault("Access-Control-Allow-Credentials", "true")
+        return response
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting Review Discovery Engine API")
@@ -47,6 +61,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+app.add_middleware(EnsureCorsMiddleware)
 app.add_middleware(RequestContextMiddleware)
 app.add_middleware(
     CORSMiddleware,
@@ -94,6 +109,7 @@ def root() -> dict:
         "service": "review-discovery-engine",
         "health": "/health",
         "docs": "/docs",
+        "commit": os.environ.get("RAILWAY_GIT_COMMIT_SHA", "local"),
     }
 
 
