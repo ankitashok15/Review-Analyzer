@@ -36,7 +36,7 @@ jobs:
           npm run build
         env:
           VITE_BASE_PATH: /Review-Analyzer/
-          VITE_API_URL: ${{ vars.RENDER_API_URL }}  # Railway or Cloudflare tunnel URL
+          VITE_API_URL: https://review-analyzer-production-453f.up.railway.app
 
       - uses: actions/upload-pages-artifact@v3
         with:

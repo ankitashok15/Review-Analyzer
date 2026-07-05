@@ -238,6 +238,37 @@ def test_rag_service_generation_failure_uses_fallback(mock_retriever_cls):
         db.close()
 
 
+@patch("src.rag.service.RagRetriever")
+def test_rag_service_generation_and_fallback_failure_returns_insufficient(mock_retriever_cls):
+    review = _sample_review()
+    retrieved = [_retrieved(review, score=0.8)]
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve.return_value = ("query", retrieved)
+    mock_retriever_cls.return_value = mock_retriever
+
+    mock_generator = MagicMock()
+    mock_generator.generate.side_effect = RuntimeError("quota exceeded")
+    mock_generator.generate_fallback.side_effect = RuntimeError("quota exceeded")
+    mock_generator.insufficient_evidence.return_value = MagicMock(
+        question="Why is discovery hard?",
+        answer="Insufficient evidence in the review corpus to answer this question confidently.",
+        confidence="low",
+        citations=[],
+        related_insights=[],
+        retrieval_count=1,
+        answer_mode="general",
+    )
+
+    db = SessionLocal()
+    try:
+        service = RagService(db, retriever=mock_retriever, answer_generator=mock_generator)
+        response = service.ask(AskRequest(question="Why is discovery hard?"))
+        mock_generator.insufficient_evidence.assert_called_once()
+        assert "Insufficient evidence" in response.answer
+    finally:
+        db.close()
+
+
 def test_rag_service_related_insights_overlap():
     review = _sample_review()
     retrieved = [_retrieved(review)]

@@ -78,11 +78,17 @@ class RagService:
         except Exception as exc:
             logger.warning("RAG generation failed for question=%r: %s", question, exc)
             if request.allow_fallback and settings.rag_fallback_enabled:
-                return self.answer_generator.generate_fallback(
-                    question,
-                    retrieval_count=len(retrieved),
-                )
-            raise
+                try:
+                    return self.answer_generator.generate_fallback(
+                        question,
+                        retrieval_count=len(retrieved),
+                    )
+                except Exception as fallback_exc:
+                    logger.warning("Fallback generation also failed: %s", fallback_exc)
+            return self.answer_generator.insufficient_evidence(
+                question,
+                retrieval_count=len(retrieved),
+            )
 
     def _fallback_or_insufficient(
         self,
