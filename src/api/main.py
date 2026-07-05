@@ -76,10 +76,15 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         request.url.path,
         extra={"request_id": request_id},
     )
+    headers: dict[str, str] = {"X-Request-ID": request_id or ""}
+    origin = request.headers.get("origin")
+    if origin and origin in _cors_origins:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal server error", "type": type(exc).__name__},
-        headers={"X-Request-ID": request_id or ""},
+        headers=headers,
     )
 
 

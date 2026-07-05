@@ -42,6 +42,17 @@ class RagService:
         if not question:
             raise ValueError("Question cannot be empty")
 
+        try:
+            return self._ask_with_retrieval(request, question)
+        except Exception as exc:
+            logger.warning("RAG ask failed for question=%r: %s", question, exc)
+            return self._fallback_or_insufficient(
+                question,
+                retrieval_count=0,
+                allow_fallback=request.allow_fallback,
+            )
+
+    def _ask_with_retrieval(self, request: AskRequest, question: str) -> AskResponse:
         _, retrieved = self.retriever.retrieve(
             question,
             request.filters,

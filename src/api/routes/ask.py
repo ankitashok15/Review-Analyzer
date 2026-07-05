@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from src.api.dependencies import get_db_session
+from src.rag.answer_generator import AnswerGenerator
 from src.rag.schemas import AskRequest, AskResponse
 from src.rag.service import RagService
 from src.security.sanitize import sanitize_query
@@ -24,3 +25,9 @@ def ask_question(
         return service.ask(sanitized)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        generator = AnswerGenerator()
+        try:
+            return generator.generate_fallback(question, retrieval_count=0)
+        except Exception:
+            return generator.insufficient_evidence(question, retrieval_count=0)
