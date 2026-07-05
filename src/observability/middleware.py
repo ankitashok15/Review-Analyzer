@@ -8,6 +8,22 @@ from src.observability.metrics import get_metrics
 from src.security.rate_limit import check_rate_limit
 
 
+from config.settings import get_settings
+
+settings = get_settings()
+
+
+def _cors_headers_for_request(request: Request) -> dict[str, str]:
+    origin = request.headers.get("origin")
+    allowed = {o.strip() for o in settings.cors_origins.split(",") if o.strip()}
+    if origin and origin in allowed:
+        return {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+        }
+    return {}
+
+
 class RequestContextMiddleware(BaseHTTPMiddleware):
     """Attach request IDs, enforce rate limits, and record API latency metrics."""
 
@@ -25,7 +41,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
                 return JSONResponse(
                     status_code=429,
                     content={"detail": "Rate limit exceeded. Try again later."},
-                    headers={"X-Request-ID": request_id},
+                    headers={"X-Request-ID": request_id, **_cors_headers_for_request(request)},
                 )
 
         started = time.perf_counter()

@@ -83,13 +83,12 @@ def test_answer_generator_drops_hallucinated_citations():
 
 
 def test_answer_generator_insufficient_evidence_response():
-    generator = AnswerGenerator(gemini_client=MagicMock())
-    response = generator.insufficient_evidence("Unknown topic?", retrieval_count=0)
+    response = AnswerGenerator.static_fallback("Unknown topic?", retrieval_count=0)
     assert response.confidence == "low"
     assert response.citations == []
     assert response.retrieval_count == 0
     assert response.answer_mode == "general"
-    assert "Insufficient evidence" in response.answer
+    assert "General product guidance" in response.answer
 
 
 def test_answer_generator_fallback_response():
@@ -251,7 +250,7 @@ def test_rag_service_generation_and_fallback_failure_returns_insufficient(mock_r
     mock_generator.generate_fallback.side_effect = RuntimeError("quota exceeded")
     mock_generator.insufficient_evidence.return_value = MagicMock(
         question="Why is discovery hard?",
-        answer="Insufficient evidence in the review corpus to answer this question confidently.",
+        answer="General product guidance — not from your embedded review dataset.",
         confidence="low",
         citations=[],
         related_insights=[],
@@ -264,7 +263,7 @@ def test_rag_service_generation_and_fallback_failure_returns_insufficient(mock_r
         service = RagService(db, retriever=mock_retriever, answer_generator=mock_generator)
         response = service.ask(AskRequest(question="Why is discovery hard?"))
         mock_generator.insufficient_evidence.assert_called_once()
-        assert "Insufficient evidence" in response.answer
+        assert "General product guidance" in response.answer
     finally:
         db.close()
 

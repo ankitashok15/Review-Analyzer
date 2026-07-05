@@ -21,6 +21,73 @@ INSUFFICIENT_EVIDENCE_ANSWER = (
     "Try broadening your question or ensure more reviews are embedded for semantic search."
 )
 
+
+def _static_fallback_bullets(question: str) -> list[str]:
+    q = question.lower()
+    bullets: list[str] = []
+    if "discover" in q or "new music" in q:
+        bullets.extend(
+            [
+                "Recommendation loops that replay familiar artists instead of surfacing new music",
+                "Shuffle and autoplay behavior that feels repetitive",
+                "Discover Weekly / Made For You playlists lacking variety",
+            ]
+        )
+    if "recommend" in q or "frustration" in q:
+        bullets.extend(
+            [
+                "Irrelevant or overly narrow recommendations",
+                "Suggested songs that do not match listening history",
+                "Difficulty dismissing or tuning recommendations",
+            ]
+        )
+    if "listen" in q or "behavior" in q:
+        bullets.extend(
+            [
+                "Queue control, shuffle, and replay expectations",
+                "Playlist curation and skipping unwanted tracks",
+                "Podcast vs music playback feature gaps",
+            ]
+        )
+    if "same content" in q or "repeat" in q or "shuffle" in q:
+        bullets.extend(
+            [
+                "Shuffle algorithms playing the same subset of songs",
+                "Feedback loops reinforcing already-popular tracks",
+                "Limited true randomization in large libraries",
+            ]
+        )
+    if "segment" in q or "user" in q:
+        bullets.extend(
+            [
+                "Free-tier users hitting ads and skip limits",
+                "Premium users expecting better personalization",
+                "Platform differences (mobile vs desktop vs car)",
+            ]
+        )
+    if "unmet" in q or "need" in q:
+        bullets.extend(
+            [
+                "More control over recommendations and discovery",
+                "Better offline, queue, and playback features",
+                "Transparency in why specific songs are suggested",
+            ]
+        )
+    if not bullets:
+        bullets = [
+            "Discovery and recommendation quality",
+            "Playback control (shuffle, queue, skip)",
+            "Ads, premium tiers, and feature gaps",
+        ]
+    seen: set[str] = set()
+    unique: list[str] = []
+    for item in bullets:
+        if item not in seen:
+            seen.add(item)
+            unique.append(item)
+    return unique[:6]
+
+
 FALLBACK_SYSTEM_INSTRUCTION = """You are a product research assistant for a music streaming app review analyzer.
 The user asked a research question but the system could not produce an evidence-backed answer from the embedded review corpus.
 Provide a concise, helpful general answer about typical user behavior and product patterns in music streaming apps
@@ -96,21 +163,47 @@ class AnswerGenerator:
         *,
         retrieval_count: int = 0,
     ) -> AskResponse:
-        prompt = (
-            f"Research question:\n{question.strip()}\n\n"
-            "Provide general product-research context that helps the user understand likely themes, "
-            "without claiming they come from a specific review dataset."
+        try:
+            prompt = (
+                f"Research question:\n{question.strip()}\n\n"
+                "Provide general product-research context that helps the user understand likely themes, "
+                "without claiming they come from a specific review dataset."
+            )
+            raw = self.gemini.generate_json(
+                prompt,
+                FallbackOutput,
+                model=settings.gemini_rag_model,
+                system_instruction=FALLBACK_SYSTEM_INSTRUCTION,
+            )
+            parsed = FallbackOutput.model_validate(raw)
+            return AskResponse(
+                question=question.strip(),
+                answer=parsed.answer.strip(),
+                confidence="low",
+                citations=[],
+                related_insights=[],
+                retrieval_count=retrieval_count,
+                answer_mode="general",
+            )
+        except Exception as exc:
+            logger.warning("LLM fallback failed, using static guidance: %s", exc)
+            return self.static_fallback(question, retrieval_count=retrieval_count)
+
+    @staticmethod
+    def static_fallback(question: str, *, retrieval_count: int = 0) -> AskResponse:
+        bullets = _static_fallback_bullets(question)
+        lines = "\n".join(f"- {item}" for item in bullets)
+        answer = (
+            "**General product guidance** — not from your embedded review dataset "
+            "(Gemini quota may be exhausted or no matching reviews were retrieved).\n\n"
+            f"**Question:** {question.strip()}\n\n"
+            "Typical themes in music streaming app research include:\n"
+            f"{lines}\n\n"
+            "Use **Search** for raw review excerpts, or retry **Ask** after the daily API quota resets."
         )
-        raw = self.gemini.generate_json(
-            prompt,
-            FallbackOutput,
-            model=settings.gemini_rag_model,
-            system_instruction=FALLBACK_SYSTEM_INSTRUCTION,
-        )
-        parsed = FallbackOutput.model_validate(raw)
         return AskResponse(
             question=question.strip(),
-            answer=parsed.answer.strip(),
+            answer=answer,
             confidence="low",
             citations=[],
             related_insights=[],
@@ -119,15 +212,7 @@ class AnswerGenerator:
         )
 
     def insufficient_evidence(self, question: str, *, retrieval_count: int) -> AskResponse:
-        return AskResponse(
-            question=question.strip(),
-            answer=INSUFFICIENT_EVIDENCE_ANSWER,
-            confidence="low",
-            citations=[],
-            related_insights=[],
-            retrieval_count=retrieval_count,
-            answer_mode="general",
-        )
+        return self.static_fallback(question, retrieval_count=retrieval_count)
 
     def _validate_citations(
         self,

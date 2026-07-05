@@ -26,8 +26,4 @@ def ask_question(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        generator = AnswerGenerator()
-        try:
-            return generator.generate_fallback(question, retrieval_count=0)
-        except Exception:
-            return generator.insufficient_evidence(question, retrieval_count=0)
+        return AnswerGenerator.static_fallback(question, retrieval_count=0)
